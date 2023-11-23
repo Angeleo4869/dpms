@@ -14,5 +14,9 @@ def print_hi(name):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
-    db.get_sqlite3_connect()
+    connect = db.get_sqlite3_connect()
+    print("success connect")
+    for row in connect.cursor().execute("SELECT * FROM patient"):
+        print(row[:])
+    connect.close()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

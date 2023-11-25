@@ -1,0 +1,6 @@
+pip~=23.3.1
+wheel~=0.41.2
+setuptools~=68.0.0
+wxPython~=4.2.1
+Pillow~=10.1.0
+numpy~=1.24.4

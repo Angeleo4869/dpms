@@ -2,7 +2,7 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
+import ui.main
 import util.db_util as db
 
 
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     print_hi('PyCharm')
     connect = db.get_sqlite3_connect()
     print("success connect")
-    for row in connect.cursor().execute("SELECT * FROM patient"):
+    for row in connect.cursor().execute("SELECT * FROM patients"):
         print(row[:])
     connect.close()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

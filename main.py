@@ -5,8 +5,12 @@
 import wx
 import util.db_util as db
 from dao.dpms_dao import get_expected_medication_this_month, get_records_medication_this_month
-from ui import main
-from ui import create_patients
+from dao.patient_dao import get_patient, insert_patient
+from service.dpms_service import register_a_medication
+from ui import main_ui
+from ui import create_patients_ui
+from ui.main_ui import DPMS_Main
+from util import time_util
 
 
 def print_hi(name):
@@ -18,13 +22,18 @@ def print_hi(name):
 if __name__ == '__main__':
     print_hi('PyCharm')
     connect = db.get_sqlite3_connect()
-    get_records_medication_this_month(connect)
+    print(get_records_medication_this_month(connect))
+    print(get_expected_medication_this_month(connect))
+    # insert_patient(connect, "小八", "14935502580")
+    # register_a_medication(7, 3, time_util.get_now_strf_time(), 1, "不错", 13)
+    # connect.commit()
+    connect.close()
     # print("success connect")
     # # for row in connect.cursor().execute("SELECT * FROM patients"):
     # #     print(row[:])
     # connect.close()
     # app = wx.PySimpleApp()
-    # frame = create_patients.CreatePatient(parent=None, id=-1)
+    # frame = DPMS_Main(parent=None, id=-1)
     # frame.Show()
     # app.MainLoop()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

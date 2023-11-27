@@ -1,5 +1,5 @@
 import wx
 
-import ui.main
+import ui.main_ui
 
 

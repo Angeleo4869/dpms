@@ -6,7 +6,7 @@ import wx
 import util.db_util as db
 from dao.dpms_dao import get_expected_medication_this_month, get_records_medication_this_month
 from dao.patient_dao import get_patient, insert_patient
-from service.dpms_service import register_a_medication
+from service.dpms_service import register_a_medication, get_patient_data
 from ui import main_ui
 from ui import create_patients_ui
 from ui.main_ui import DPMS_Main
@@ -27,13 +27,16 @@ if __name__ == '__main__':
     # insert_patient(connect, "小八", "14935502580")
     # register_a_medication(7, 3, time_util.get_now_strf_time(), 1, "不错", 13)
     # connect.commit()
-    connect.close()
+    # connect.close()
     # print("success connect")
     # # for row in connect.cursor().execute("SELECT * FROM patients"):
     # #     print(row[:])
     # connect.close()
-    # app = wx.PySimpleApp()
-    # frame = DPMS_Main(parent=None, id=-1)
-    # frame.Show()
-    # app.MainLoop()
+    # get_patient_data(None)
+
+    app = wx.PySimpleApp()
+    frame = DPMS_Main(parent=None, id=-1)
+    frame.Show()
+    app.MainLoop()
+
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

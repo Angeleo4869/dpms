@@ -17,3 +17,14 @@ def register_a_medication(patient_id, dose, time, status, remark, expected_id):
             update_expected_with_records(connect, patient_id, dose, time, expected_id, time):
         connect.commit()
     connect.close()
+
+
+# 主页数据看板
+def get_patient_data(page):
+    connect = db_util.get_sqlite3_connect()
+    patients = dpms_dao.get_patients_order_by_expected(connect, None)
+    for i in range(len(patients)):
+        patients[i]["patient_record"] = dpms_dao.get_patient_records(connect, patients[i].get('id'))
+        patients[i]["patient_expected"] = dpms_dao.get_patient_expected(connect, patients[i].get("id"))
+    connect.close()
+    return patients

@@ -20,7 +20,7 @@ def get_patients_order_by_expected(conn, page):
           " AND em.status = 0 " \
           " AND p.status = 1 " \
           " GROUP BY em.patient_id "\
-        .format(time_util.get_delete_time(), time_util.get_delete_time())
+        .format(time_util.get_sql_delete_time(), time_util.get_sql_delete_time())
     if page:
         sql += " LIMIT {}, {} ".format(page.offset, page.row_count)
     patients = []
@@ -43,11 +43,11 @@ def get_patients_order_by_expected(conn, page):
 
 
 def get_patient_expected(conn, patient_id):
-    sql = "SELECT `id`, date(`expected_at`), `status`, 'type', 'dose' " \
+    sql = "SELECT `id`, date(`expected_at`), `status`, `type`, `dose` " \
           " FROM expected_medication " \
           " WHERE deleted_at = {} " \
           " AND patient_id = ?;"\
-        .format(time_util.get_delete_time())
+        .format(time_util.get_sql_delete_time())
     pat_expects = []
     try:
         cusor = conn.execute(sql, (str(patient_id)))
@@ -72,7 +72,7 @@ def get_patient_records(conn, patient_id):
           " FROM medication_records " \
           " WHERE deleted_at = {} " \
           " AND patient_id = ?;"\
-        .format(time_util.get_delete_time())
+        .format(time_util.get_sql_delete_time())
     pat_records = []
     try:
         cusor = conn.execute(sql, (str(patient_id)))
@@ -95,7 +95,7 @@ def get_patient_records(conn, patient_id):
 
 # 查询本月剩余预购量
 def get_expected_medication_this_month(conn):
-    begin, end = time_util.get_start_month_from_today()
+    begin, end = time_util.get_sql_start_month_from_today()
     sql = " SELECT SUM(em.dose) " \
           " FROM expected_medication em " \
           " JOIN patients p " \
@@ -105,7 +105,7 @@ def get_expected_medication_this_month(conn):
           " AND em.type = 1 " \
           " AND p.status = 0 " \
           " AND em.expected_at BETWEEN {} AND {} ;"\
-        .format(time_util.get_delete_time(), time_util.get_delete_time(), begin, end)
+        .format(time_util.get_sql_delete_time(), time_util.get_sql_delete_time(), begin, end)
     this_month_expected_count = 0
     try:
         cusor = conn.execute(sql)
@@ -120,7 +120,7 @@ def get_expected_medication_this_month(conn):
 
 # 查询本月已购量
 def get_records_medication_this_month(conn):
-    begin, end = time_util.get_start_month_from_today()
+    begin, end = time_util.get_sql_start_month_from_today()
     sql = " SELECT SUM(mr.dose) " \
           " FROM medication_records mr " \
           " JOIN patients p " \
@@ -130,7 +130,7 @@ def get_records_medication_this_month(conn):
           " AND mr.type = 1 "\
           " AND p.status = 1 " \
           " AND mr.record_at BETWEEN {} AND {} ;"\
-        .format(time_util.get_delete_time(), time_util.get_delete_time(), begin, end)
+        .format(time_util.get_sql_delete_time(), time_util.get_sql_delete_time(), begin, end)
     this_month_record_count = 0
     try:
         cusor = conn.execute(sql)
@@ -144,12 +144,12 @@ def get_records_medication_this_month(conn):
 
 
 # 录入一次用药信息
-def insert_medication_records(conn, patient_id, dose, status, remark, expected_id, time, type):
+def insert_medication_records(conn, patient_id, dose, status, remark, expected_id, time, reType):
     sql = "INSERT INTO medication_records " \
           "(patient_id, dose, status, remark, expected_id, record_at, type) " \
           "VALUES (?, ?, ?, ?, ?, ?, ?);"
     try:
-        conn.execute(sql, (patient_id, dose, status, remark, expected_id, time, type))
+        conn.execute(sql, (patient_id, dose, status, remark, expected_id, time, reType))
     except Exception as e:
         logging.warning("insert_mediation_records", e)
         return False
@@ -167,7 +167,7 @@ def update_expected_with_records(conn, patient_id, dose, record_at, expected_id,
                     " FROM expected_medication " \
                     " WHERE deleted_at={}" \
                     " AND id = ?;"\
-        .format(time_util.get_delete_time())
+        .format(time_util.get_sql_delete_time())
     sql = "UPDATE expected_medication " \
           " SET status = 1, expected_at = ?, dose = ? " \
           " WHERE patient_id = ? " \
@@ -177,7 +177,7 @@ def update_expected_with_records(conn, patient_id, dose, record_at, expected_id,
         for row in cusor:
             if row[0] is None:
                 continue
-            conn.execute(sql, (time_util.get_diff_date(row[0], row[1]), dose, patient_id, record_at))
+            conn.execute(sql, (time_util.get_sql_diff_date(row[0], row[1]), dose, patient_id, record_at))
     except Exception as e:
         logging.warning("update_expected_with_records", e)
         return False

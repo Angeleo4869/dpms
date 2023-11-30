@@ -7,6 +7,7 @@ import util.db_util as db
 from dao.dpms_dao import get_expected_medication_this_month, get_records_medication_this_month
 from dao.patient_dao import get_patient, insert_patient
 from service.dpms_service import register_a_medication, get_patient_data
+from service.output_excel import OutPutExcel
 from ui import main_ui
 from ui import create_patients_ui
 from ui.main_ui import DPMS_Main
@@ -21,9 +22,10 @@ def print_hi(name):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
-    connect = db.get_sqlite3_connect()
-    print(get_records_medication_this_month(connect))
-    print(get_expected_medication_this_month(connect))
+    # print((time_util.string_to_time('1970-01-01') - time_util.get_now_time()).days)
+    # connect = db.get_sqlite3_connect()
+    # print(get_records_medication_this_month(connect))
+    # print(get_expected_medication_this_month(connect))
     # insert_patient(connect, "小八", "14935502580")
     # register_a_medication(7, 3, time_util.get_now_strf_time(), 1, "不错", 13)
     # connect.commit()
@@ -34,9 +36,10 @@ if __name__ == '__main__':
     # connect.close()
     # get_patient_data(None)
 
-    app = wx.PySimpleApp()
-    frame = DPMS_Main(parent=None, id=-1)
-    frame.Show()
-    app.MainLoop()
+    # app = wx.PySimpleApp()
+    # frame = DPMS_Main(parent=None, id=-1)
+    # frame.Show()
+    # app.MainLoop()
 
+    OutPutExcel()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

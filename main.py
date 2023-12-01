@@ -2,12 +2,13 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import cn2an
 import wx
 import util.db_util as db
 from dao.dpms_dao import get_expected_medication_this_month, get_records_medication_this_month
 from dao.patient_dao import get_patient, insert_patient
 from service.dpms_service import register_a_medication, get_patient_data
-from service.output_excel import OutPutExcel
+from service.output_excel import OutPutExcel, get_expected_batch
 from ui import main_ui
 from ui import create_patients_ui
 from ui.main_ui import DPMS_Main
@@ -42,4 +43,7 @@ if __name__ == '__main__':
     # app.MainLoop()
 
     OutPutExcel()
+    # print(get_expected_batch(str(3)))
+    # output = cn2an.an2cn("123", "low")
+    # print(output)
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

@@ -11,7 +11,7 @@ class DPMSDao(BaseDao):
 
 
 def get_patients_order_by_expected(conn, page):
-    sql = "SELECT p.id, p.name, p.phone, p.status, MIN(em.expected_at)" \
+    sql = "SELECT p.id, p.name, p.sex, p.phone, p.status, MIN(em.expected_at)" \
           " FROM  patients p " \
           " LEFT JOIN expected_medication em " \
           " ON em.patient_id = p.id " \
@@ -19,7 +19,7 @@ def get_patients_order_by_expected(conn, page):
           " AND em.deleted_at={}" \
           " AND em.status = 0 " \
           " AND p.status = 1 " \
-          " GROUP BY em.patient_id "\
+          " GROUP BY em.patient_id " \
         .format(time_util.get_sql_delete_time(), time_util.get_sql_delete_time())
     if page:
         sql += " LIMIT {}, {} ".format(page.offset, page.row_count)
@@ -32,13 +32,59 @@ def get_patients_order_by_expected(conn, page):
             pat = {
                 "id": row[0],
                 "name": row[1],
-                "phone": row[2],
-                "status": row[3],
-                "last_med_time": row[4]
+                "sex": row[2],
+                "phone": row[3],
+                "status": row[4],
+                "last_med_time": row[5]
             }
             patients.append(pat)
     except Exception as e:
-        logging.warning("", e)
+        logging.warning("get_patients_order_by_expected", e)
+    return patients
+
+
+def get_all_filter_patients(conn, name_key_world=None, phone=None, status=None, hospital=None, department=None, doctor=None):
+    sql = ["SELECT p.id, p.name, p.sex, p.phone, p.status, h.name, dp.name, d.name",
+           "FROM patients p",
+           "LEFT JOIN hospitals h ON h.id=p.hospital_id",
+           "AND h.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "LEFT JOIN departments dp ON dp.id = p.department_id",
+           "AND dp.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "LEFT JOIN doctors d ON d.id=p.doctor_id",
+           "AND d.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "WHERE p.deleted_at={}".format(time_util.get_sql_delete_time())]
+    if hospital:
+        sql.append("AND h.id={}".format(hospital))
+    if department:
+        sql.append("AND dp.id={}".format(department))
+    if doctor:
+        sql.append("AND d.name={}".format(doctor))
+    if name_key_world:
+        sql.append("ADN p.name like %{}%".format(name_key_world))
+    if phone:
+        sql.append("AND p.phone = %{}%".format(phone))
+    if status:
+        sql.append("AND p.status={}".format(status))
+
+    patients = []
+    try:
+        cusor = conn.execute(" ".join(sql))
+        for row in cusor:
+            if row[0] is None:
+                continue
+            pat = {
+                "id": row[0],
+                "name": row[1],
+                "sex": row[2],
+                "phone": row[3],
+                "status": row[4],
+                "hospital": row[5],
+                "departments": row[6],
+                "doctors": row[7],
+            }
+            patients.append(pat)
+    except Exception as e:
+        logging.warning("get_all_filter_patients", e)
     return patients
 
 
@@ -46,7 +92,7 @@ def get_patient_expected(conn, patient_id):
     sql = "SELECT `id`, date(`expected_at`), `status`, `type`, `dose` " \
           " FROM expected_medication " \
           " WHERE deleted_at = {} " \
-          " AND patient_id = ?;"\
+          " AND patient_id = ?;" \
         .format(time_util.get_sql_delete_time())
     pat_expects = []
     try:
@@ -63,7 +109,7 @@ def get_patient_expected(conn, patient_id):
             }
             pat_expects.append(pat_exp)
     except Exception as e:
-        logging.warning("", e)
+        logging.warning("get_patient_expected", e)
     return pat_expects
 
 
@@ -71,7 +117,7 @@ def get_patient_records(conn, patient_id):
     sql = "SELECT `id`, date(`record_at`), `dose`, `status`, `type`, `remark` " \
           " FROM medication_records " \
           " WHERE deleted_at = {} " \
-          " AND patient_id = ?;"\
+          " AND patient_id = ?;" \
         .format(time_util.get_sql_delete_time())
     pat_records = []
     try:
@@ -104,7 +150,7 @@ def get_expected_medication_this_month(conn):
           " AND em.deleted_at = {} " \
           " AND em.type = 1 " \
           " AND p.status = 0 " \
-          " AND em.expected_at BETWEEN {} AND {} ;"\
+          " AND em.expected_at BETWEEN {} AND {} ;" \
         .format(time_util.get_sql_delete_time(), time_util.get_sql_delete_time(), begin, end)
     this_month_expected_count = 0
     try:
@@ -127,9 +173,9 @@ def get_records_medication_this_month(conn):
           " ON p.id = mr.patient_id" \
           " WHERE p.deleted_at = {}" \
           " AND mr.deleted_at = {} " \
-          " AND mr.type = 1 "\
+          " AND mr.type = 1 " \
           " AND p.status = 1 " \
-          " AND mr.record_at BETWEEN {} AND {} ;"\
+          " AND mr.record_at BETWEEN {} AND {} ;" \
         .format(time_util.get_sql_delete_time(), time_util.get_sql_delete_time(), begin, end)
     this_month_record_count = 0
     try:
@@ -166,7 +212,7 @@ def update_expected_with_records(conn, patient_id, dose, record_at, expected_id,
     date_diff_sql = "SELECT expected_at, julianday(date(expected_at)) - julianday(date(?))" \
                     " FROM expected_medication " \
                     " WHERE deleted_at={}" \
-                    " AND id = ?;"\
+                    " AND id = ?;" \
         .format(time_util.get_sql_delete_time())
     sql = "UPDATE expected_medication " \
           " SET status = 1, expected_at = ?, dose = ? " \

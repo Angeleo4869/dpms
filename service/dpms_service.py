@@ -22,9 +22,22 @@ def register_a_medication(patient_id, dose, time, status, remark, expected_id):
 # 主页数据看板
 def get_patient_data(page):
     connect = db_util.get_sqlite3_connect()
-    patients = dpms_dao.get_patients_order_by_expected(connect, None)
+    patients = dpms_dao.get_patients_order_by_expected(connect, page)
+    patient_add_ex_and_re(connect, patients)
+    connect.close()
+    return patients
+
+
+def get_excel_filter_data():
+    connect = db_util.get_sqlite3_connect()
+    patients = dpms_dao.get_all_filter_patients(connect)
+    patient_add_ex_and_re(connect, patients)
+    connect.close()
+    return patients
+
+
+def patient_add_ex_and_re(connect, patients):
     for i in range(len(patients)):
         patients[i]["patient_record"] = dpms_dao.get_patient_records(connect, patients[i].get('id'))
         patients[i]["patient_expected"] = dpms_dao.get_patient_expected(connect, patients[i].get("id"))
-    connect.close()
     return patients

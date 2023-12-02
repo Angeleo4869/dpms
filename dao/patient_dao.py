@@ -1,62 +1,152 @@
-from dao.base_dao import BaseDao
+import logging
+
+from util import time_util
 
 
-class Patient(BaseDao):
-
-    def __init__(self, name, sex, phone, job, purchase, treatment):
-        super().__init__()
-        self.name = name
-        self.sex = sex
-        self.phone = phone
-        self.job = job
-        self.purchase = purchase
-        self.treatment = treatment
-
-    def row_to_patient(self, id, created_at, update_at, deleted_at, name, sex, phone, job, purchase, treatment, status):
-        self.id = id
-        self.created_at = created_at
-        self.update_at = update_at
-        self.deleted_at = deleted_at
-        self.name = name
-        self.sex = sex
-        self.phone = phone
-        self.job = job
-        self.purchase = purchase
-        self.treatment = treatment
-        self.status = status
+def get_patient_by_name_and_phone(conn, name, phone):
+    sql = "SELECT id FROM patients WHERE deleted_at={} AND name=? AND phone=?;".format(time_util.get_sql_delete_time())
+    pat_id = 0
+    try:
+        cusor = conn.execute(sql, (name, phone))
+        for row in cusor:
+            if row[0]:
+                return row[0]
+    except Exception as e:
+        logging.warning("get_patient_by_name_and_phone", e)
+        return pat_id
+    return pat_id
 
 
 # 创建角色
 def insert_patient(conn, name, phone):
-    sql = "INSERT INTO patients (name, phone) VALUES (?,?)"
-    conn.execute(sql, (name, phone))
+    sql = "INSERT INTO patients (`name`, `phone`) VALUES (?,?)"
+    pat_id = 0
+    try:
+        conn.execute(sql, (name, phone))
+        pat_id = get_patient_by_name_and_phone(name, phone)
+    except Exception as e:
+        logging.warning("insert_patient", e)
+    return pat_id
 
 
 # 编辑角色信息
-def update_patient(conn, patient):
-    sql = "UPDATE patients"
-    conn.execute(sql, patient)
-    conn.close()
+def update_patient(conn, id, sex=3, status=1, hospital=0, department=0, doctor=0):
+    sql = ["UPDATE patients",
+           "SET sex=?, status=?, hospital_id=?, department_id=?, doctor_id=?",
+           "WHERE id=?"]
+    try:
+        conn.execute(sql, (str(sex), str(status), str(hospital), str(department), str(doctor), str(id)))
+    except Exception as e:
+        logging.warning("update_patient", e)
 
 
-# 获取角色
-def get_patient(conn, page):
+# 最近一次预购
+def get_patients_order_by_expected(conn, patient_id=None, page=None):
+    sql = ["SELECT p.id, p.name, p.sex, p.phone, p.status, MIN(em.expected_at), em.dose, em.type",
+           "FROM  patients p",
+           "LEFT JOIN expected_medication em", "ON em.patient_id = p.id",
+           "WHERE p.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "AND em.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "AND em.status=0 ",
+           "GROUP BY p.id"]
+    if patient_id:
+        sql.append("AND p.id={}".format(patient_id))
+    if page:
+        sql.append("LIMIT {}, {} ".format(page.offset, page.row_count))
     patients = []
-    sql = "SELECT * FROM patients LIMIT ?,?"
-    cursor = conn.execute(sql, (page.offset, page.row_count))
-    for row in cursor:
-        patients.append(Patient.__init__row(row[:]))
-    var = conn.close
+    try:
+        cusor = conn.execute(" ".join(sql))
+        for row in cusor:
+            if row[0] is None:
+                continue
+            pat = {
+                "id": row[0],
+                "name": row[1],
+                "sex": row[2],
+                "phone": row[3],
+                "status": row[4],
+                "next_order_time": row[5],
+                "dose": row[6],
+                "type": row[7]
+            }
+            if not pat['sex']:
+                pat['sex'] = 2
+            patients.append(pat)
+    except Exception as e:
+        logging.warning("get_patients_order_by_expected", e)
     return patients
 
 
-# 获取角色
-def get_patient(conn, name, phone):
+# 上一次购药信息
+def get_patient_last_order(conn, patient_id):
+    sql = ["SELECT mr.patient_id, MAX(mr.record_at), mr.dose, mr.remark",
+           "FROM medication_records mr",
+           "WHERE mr.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "AND mr.status=1",
+           "AND mr.patient_id=?"]
     patients = []
-    sql = "SELECT * FROM patients WHERE name = ? AND phone = ?"
-    cursor = conn.execute(sql, (name, phone))
-    for row in cursor:
-        # print(row[:])
-        patients.append(Patient.row_to_patient(row[:]))
-    var = conn.close
+    try:
+        cusor = conn.execute(" ".join(sql), (str(patient_id)))
+        for row in cusor:
+            if row[0] is None:
+                continue
+            pat = {
+                "patient_id": row[0],
+                "last_order_time": row[1],
+                "dose": row[2],
+                "remark": row[3]
+            }
+            patients.append(pat)
+    except Exception as e:
+        logging.warning("get_patients_order_by_expected", e)
+    return patients
+
+
+# 根据筛选条件获取患者信息
+def get_all_filter_patients(conn, patient_id=None, name_key_world=None, phone=None, status=None, hospital=None, department=None, doctor=None):
+    sql = ["SELECT p.id, p.name, p.sex, p.phone, p.status, h.name, dp.name, d.name",
+           "FROM patients p",
+           "LEFT JOIN hospitals h ON h.id=p.hospital_id",
+           "AND h.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "LEFT JOIN departments dp ON dp.id = p.department_id",
+           "AND dp.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "LEFT JOIN doctors d ON d.id=p.doctor_id",
+           "AND d.deleted_at={}".format(time_util.get_sql_delete_time()),
+           "WHERE p.deleted_at={}".format(time_util.get_sql_delete_time())]
+    if patient_id:
+        sql.append("AND p.id={}".format(patient_id))
+    if hospital:
+        sql.append("AND h.id={}".format(hospital))
+    if department:
+        sql.append("AND dp.id={}".format(department))
+    if doctor:
+        sql.append("AND d.name={}".format(doctor))
+    if name_key_world:
+        sql.append("ADN p.name like %{}%".format(name_key_world))
+    if phone:
+        sql.append("AND p.phone = %{}%".format(phone))
+    if status:
+        sql.append("AND p.status={}".format(status))
+
+    patients = []
+    try:
+        cusor = conn.execute(" ".join(sql))
+        for row in cusor:
+            if row[0] is None:
+                continue
+            pat = {
+                "id": row[0],
+                "name": row[1],
+                "sex": row[2],
+                "phone": row[3],
+                "status": row[4],
+                "hospital": row[5],
+                "departments": row[6],
+                "doctors": row[7],
+            }
+            if not pat['sex']:
+                pat['sex'] = 2
+            patients.append(pat)
+    except Exception as e:
+        logging.warning("get_all_filter_patients", e)
     return patients

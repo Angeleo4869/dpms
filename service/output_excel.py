@@ -134,7 +134,6 @@ class OutPutExcel:
 
     # 患者基本信息写入 Excel
     def set_patient_sheet(self, sheet, index, start_row, start_col, cell_text, expected_len=1):
-        print("set_patient_sheet", index, start_row, start_col, cell_text, expected_len)
         sheet.cell(start_row, start_col, cell_text)
         sheet.cell(start_row, start_col).alignment = get_align()
         sheet.cell(start_row, start_col).fill = get_solid_color(index)

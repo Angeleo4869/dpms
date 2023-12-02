@@ -73,7 +73,6 @@ class DPMS_Main(wx.Frame):
 
     def get_patient_data_box(self, panel, parentBox):
         for pat_data in dpms_service.get_patient_data(None):
-            print("pat_data", pat_data)
             pat_gb = wx.GridBagSizer(0, 0)
             pat_status, status_colour = get_patient_status(pat_data.get('status'))
             pat_name_text = wx.StaticText(panel, label=pat_data.get('name'))

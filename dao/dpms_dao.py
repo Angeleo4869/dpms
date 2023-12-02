@@ -1,93 +1,9 @@
 import logging
 
-from dao.base_dao import BaseDao
 import util.time_util as time_util
 
 
-class DPMSDao(BaseDao):
-
-    def __init__(self):
-        super().__init__()
-
-
-def get_patients_order_by_expected(conn, page):
-    sql = "SELECT p.id, p.name, p.sex, p.phone, p.status, MIN(em.expected_at)" \
-          " FROM  patients p " \
-          " LEFT JOIN expected_medication em " \
-          " ON em.patient_id = p.id " \
-          " WHERE p.deleted_at={}" \
-          " AND em.deleted_at={}" \
-          " AND em.status = 0 " \
-          " AND p.status = 1 " \
-          " GROUP BY em.patient_id " \
-        .format(time_util.get_sql_delete_time(), time_util.get_sql_delete_time())
-    if page:
-        sql += " LIMIT {}, {} ".format(page.offset, page.row_count)
-    patients = []
-    try:
-        cusor = conn.execute(sql)
-        for row in cusor:
-            if row[0] is None:
-                continue
-            pat = {
-                "id": row[0],
-                "name": row[1],
-                "sex": row[2],
-                "phone": row[3],
-                "status": row[4],
-                "last_med_time": row[5]
-            }
-            patients.append(pat)
-    except Exception as e:
-        logging.warning("get_patients_order_by_expected", e)
-    return patients
-
-
-def get_all_filter_patients(conn, name_key_world=None, phone=None, status=None, hospital=None, department=None, doctor=None):
-    sql = ["SELECT p.id, p.name, p.sex, p.phone, p.status, h.name, dp.name, d.name",
-           "FROM patients p",
-           "LEFT JOIN hospitals h ON h.id=p.hospital_id",
-           "AND h.deleted_at={}".format(time_util.get_sql_delete_time()),
-           "LEFT JOIN departments dp ON dp.id = p.department_id",
-           "AND dp.deleted_at={}".format(time_util.get_sql_delete_time()),
-           "LEFT JOIN doctors d ON d.id=p.doctor_id",
-           "AND d.deleted_at={}".format(time_util.get_sql_delete_time()),
-           "WHERE p.deleted_at={}".format(time_util.get_sql_delete_time())]
-    if hospital:
-        sql.append("AND h.id={}".format(hospital))
-    if department:
-        sql.append("AND dp.id={}".format(department))
-    if doctor:
-        sql.append("AND d.name={}".format(doctor))
-    if name_key_world:
-        sql.append("ADN p.name like %{}%".format(name_key_world))
-    if phone:
-        sql.append("AND p.phone = %{}%".format(phone))
-    if status:
-        sql.append("AND p.status={}".format(status))
-
-    patients = []
-    try:
-        cusor = conn.execute(" ".join(sql))
-        for row in cusor:
-            if row[0] is None:
-                continue
-            pat = {
-                "id": row[0],
-                "name": row[1],
-                "sex": row[2],
-                "phone": row[3],
-                "status": row[4],
-                "hospital": row[5],
-                "departments": row[6],
-                "doctors": row[7],
-            }
-            patients.append(pat)
-    except Exception as e:
-        logging.warning("get_all_filter_patients", e)
-    return patients
-
-
+# 获取患者预购信息
 def get_patient_expected(conn, patient_id):
     sql = "SELECT `id`, date(`expected_at`), `status`, `type`, `dose` " \
           " FROM expected_medication " \
@@ -113,6 +29,7 @@ def get_patient_expected(conn, patient_id):
     return pat_expects
 
 
+# 获取患者已购信息
 def get_patient_records(conn, patient_id):
     sql = "SELECT `id`, date(`record_at`), `dose`, `status`, `type`, `remark` " \
           " FROM medication_records " \
@@ -195,7 +112,7 @@ def insert_medication_records(conn, patient_id, dose, status, remark, expected_i
           "(patient_id, dose, status, remark, expected_id, record_at, type) " \
           "VALUES (?, ?, ?, ?, ?, ?, ?);"
     try:
-        conn.execute(sql, (patient_id, dose, status, remark, expected_id, time, reType))
+        conn.execute(sql, (str(patient_id), str(dose), str(status), remark, str(expected_id), time, str(reType)))
     except Exception as e:
         logging.warning("insert_mediation_records", e)
         return False
@@ -228,3 +145,65 @@ def update_expected_with_records(conn, patient_id, dose, record_at, expected_id,
         logging.warning("update_expected_with_records", e)
         return False
     return True
+
+
+# 获取医院
+def get_hospitals(conn):
+    sql = "SELECT `id`, `name`, `address`, `phone` FROM hospitals;"
+    hospitals = []
+    try:
+        cusor = conn.execute(sql)
+        for row in cusor:
+            if row[0] is None:
+                continue
+            hospital = {
+                "id": row[0],
+                "name": row[1],
+                "address": row[2],
+                "phone": row[3],
+            }
+            hospitals.append(hospital)
+    except Exception as e:
+        logging.warning("get_hospitals", e)
+    return hospitals
+
+
+def get_departments(conn):
+    sql = "SELECT `id`, `name`, `hospital_id` FROM departments;"
+    departments = []
+    try:
+        cusor = conn.execute(sql)
+        for row in cusor:
+            if row[0] is None:
+                continue
+            department = {
+                "id": row[0],
+                "name": row[1],
+                "hospital_id": row[2],
+            }
+            departments.append(department)
+    except Exception as e:
+        logging.warning("get_departments", e)
+    return departments
+
+
+# 获取医生
+def get_doctors(conn):
+    sql = "SELECT `id`, `name`, `phone`, `hospital_id`, `department_id` FROM doctors;"
+    doctors = []
+    try:
+        cusor = conn.execute(sql)
+        for row in cusor:
+            if row[0] is None:
+                continue
+            doctor = {
+                "id": row[0],
+                "name": row[1],
+                "phone": row[2],
+                "hospital_id": row[3],
+                "department_id": row[4],
+            }
+            doctors.append(doctor)
+    except Exception as e:
+        logging.warning("get_hospitals", e)
+    return doctors

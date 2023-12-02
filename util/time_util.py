@@ -45,5 +45,10 @@ def string_to_time(strTime):
     return datetime.strptime(strTime, "%Y-%m-%d")
 
 
+def time_to_string(time):
+    print(time)
+    return datetime.strftime(time, "%Y-%m-%d %H:%M:%S")
+
+
 def get_time_diff(time1, time2):
     return (time1 - time2).days

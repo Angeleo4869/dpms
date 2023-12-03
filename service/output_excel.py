@@ -85,12 +85,12 @@ def get_sex(sex):
 
 class OutPutExcel:
 
-    def __init__(self):
+    def __init__(self, file_path):
         book = Workbook()
         sheet = book.active
         set_sheet_title(sheet)
         self.set_pdms_data(sheet)
-        book.save('data/test.xlsx')
+        book.save(file_path)
 
     def set_pdms_data(self, sheet):
         pdms_data = dpms_service.get_excel_filter_data()

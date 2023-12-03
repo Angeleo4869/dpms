@@ -6,11 +6,11 @@ from util import time_util
 
 def get_total_text_data():
     return (("剩余预购量", (1, 0)),
-            ("+", (1, 1)),
+            ("  +  ", (1, 1)),
             ("本月已购量", (1, 2)),
-            ("=", (1, 3)),
+            ("  =  ", (1, 3)),
             ("本月预购总量", (1, 4)),
-            ("更  多", (0, 6)))
+            ("↓更↓↓↓多↓", (0, 6)))
 
 
 def get_patient_record_box(panel, parentBox, recordDatas, firstX):
@@ -30,6 +30,8 @@ def get_expected_color(expectedData):
     diff_day = get_expected_time_to_int(expectedData.get('expected_at'))
     if diff_day < 0:
         return 50, 50, 50
+    if diff_day > 100:
+        return 255, 255, 255
     return 255, diff_day * 2 + 40, diff_day * 2 + 40
 
 
@@ -44,11 +46,11 @@ def get_patient_status(status):
 class DPMS_Main(wx.Frame):
 
     def __init__(self, parent, id):
-        wx.Frame.__init__(self, parent, id, 'Refactor Example', size=(500, 300))
+        wx.Frame.__init__(self, parent, id, 'Refactor Example', size=(700, 300))
         panel = wx.Panel(self, -1)
         panel.SetBackgroundColour("White")
         mainBox = wx.BoxSizer(wx.VERTICAL)
-        totalDataBox = wx.GridBagSizer(2, 4)
+        totalDataBox = wx.GridBagSizer(0, 0)
         mainBox.Add(totalDataBox, 0, wx.CENTER, 5)
         panel.SetSizer(mainBox)
         self.get_total_text(panel, totalDataBox)
@@ -58,18 +60,19 @@ class DPMS_Main(wx.Frame):
 
         mainBox.Add(patientsDataBox)
 
-    def get_expect_and_record_num_text(self, panel, totalBox):
-        nums = dpms_service.get_expect_and_record_num()
-        for i, num in enumerate(nums):
-            numText = wx.StaticText(panel)
-            numText.SetLabelText(str(num))
-            totalBox.Add(numText, pos=(0, i), flag=wx.ALL)
 
     def get_total_text(self, panel, totalBox):
-        for text, pos in get_total_text_data():
-            st = wx.StaticText(panel, label=text)
+        nums = dpms_service.get_expect_and_record_num()
+        for index, (text, pos) in enumerate(get_total_text_data()):
+            st = wx.StaticText(panel, label=text, style=wx.ALIGN_CENTER | wx.ST_ELLIPSIZE_MIDDLE)
+            font = wx.Font(18, wx.ROMAN, wx.ITALIC, wx.NORMAL)
+            st.SetFont(font)
             totalBox.Add(st, pos, flag=wx.ALL)
-        self.get_expect_and_record_num_text(panel, totalBox)
+            if index % 2 == 0:
+                numText = wx.StaticText(panel)
+                numText.SetFont(font)
+                numText.SetLabelText(str(nums[index-2]))
+                totalBox.Add(numText, pos=(0, index), flag=wx.ALIGN_CENTER)
 
     def get_patient_data_box(self, panel, parentBox):
         for pat_data in dpms_service.get_patient_data(None):

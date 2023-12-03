@@ -8,7 +8,11 @@ def get_or_create_patient(name, phone):
     patient_id = patient_dao.get_patient_by_name_and_phone(connect, name, phone)
     if patient_id == 0 and name and phone:
         patient_dao.insert_patient(connect, name, phone)
-    patients = patient_dao.get_all_filter_patients(connect, patient_id=patient_id)
+        connect.commit()
+    if patient_id:
+        patients = patient_dao.get_all_filter_patients(connect, patient_id=patient_id)
+    else:
+        patients = patient_dao.get_all_filter_patients(connect, name=name, phone=phone)
     connect.close()
     return patients[0]
 
@@ -24,7 +28,7 @@ def get_expect_and_record_num():
 def register_a_medication(patient_id, dose, time, status, remark, expected_id, type):
     connect = db_util.get_sqlite3_connect()
     if insert_medication_records(connect, patient_id, dose, status, remark, expected_id, time, type) and \
-            update_expected_with_records(connect, patient_id, dose, time, expected_id, time):
+            update_expected_with_records(connect, patient_id, dose, time, expected_id):
         connect.commit()
     connect.close()
 

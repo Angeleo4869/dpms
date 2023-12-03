@@ -4,8 +4,8 @@ from time import strftime, localtime
 
 def get_sql_diff_date(dateTime, diff):
     if 0 <= diff:
-        return "datetime('{}', '+{} day')".format(dateTime, diff)
-    return "datetime({}', '{} day')".format(dateTime, diff)
+        return "datetime({}, '+{} day')".format(dateTime, diff)
+    return "datetime({}, '{} day')".format(dateTime, diff)
 
 
 # NOW
@@ -45,9 +45,8 @@ def string_to_time(strTime):
     return datetime.strptime(strTime, "%Y-%m-%d")
 
 
-def time_to_string(time):
-    print(time)
-    return datetime.strftime(time, "%Y-%m-%d %H:%M:%S")
+def wx_time_to_string(wx_time):
+    return wx_time.replace('T', ' ', 1)
 
 
 def get_time_diff(time1, time2):

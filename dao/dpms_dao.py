@@ -12,7 +12,7 @@ def get_patient_expected(conn, patient_id):
         .format(time_util.get_sql_delete_time())
     pat_expects = []
     try:
-        cusor = conn.execute(sql, (str(patient_id)))
+        cusor = conn.execute(sql, (patient_id, ))
         for row in cusor:
             if row[0] is None:
                 continue
@@ -38,7 +38,7 @@ def get_patient_records(conn, patient_id):
         .format(time_util.get_sql_delete_time())
     pat_records = []
     try:
-        cusor = conn.execute(sql, (str(patient_id)))
+        cusor = conn.execute(sql, (patient_id, ))
         for row in cusor:
             if row[0] is None:
                 continue
@@ -125,22 +125,22 @@ def update_mediation_records(conn):
 
 
 # 计算剩余预计用药时间
-def update_expected_with_records(conn, patient_id, dose, record_at, expected_id, time):
-    date_diff_sql = "SELECT expected_at, julianday(date(expected_at)) - julianday(date(?))" \
-                    " FROM expected_medication " \
-                    " WHERE deleted_at={}" \
-                    " AND id = ?;" \
-        .format(time_util.get_sql_delete_time())
-    sql = "UPDATE expected_medication " \
-          " SET status = 1, expected_at = ?, dose = ? " \
-          " WHERE patient_id = ? " \
-          " AND expected_at > ?;"
+def update_expected_with_records(conn, patient_id, dose, record_at, expected_id):
+    date_diff_sql = ["SELECT id, expected_at, (julianday(date(expected_at)) - julianday(date('{}'))) AS diff_time".format(record_at),
+                     "FROM expected_medication",
+                     "WHERE deleted_at={}".format(time_util.get_sql_delete_time()),
+                     "AND id=?"]
+
+    exp_status_sql = "UPDATE expected_medication SET status=1 WHERE id = ?;"
+
+    sql = "UPDATE expected_medication SET expected_at={}, dose=? WHERE patient_id=? AND expected_at>?;"
     try:
-        cusor = conn.execute(date_diff_sql, (time, expected_id))
+        cusor = conn.execute(" ".join(date_diff_sql), (expected_id, ))
+        conn.execute(exp_status_sql, (expected_id, ))
         for row in cusor:
             if row[0] is None:
                 continue
-            conn.execute(sql, (time_util.get_sql_diff_date(row[0], row[1]), dose, patient_id, record_at))
+            conn.execute(sql.format(time_util.get_sql_diff_date("expected_at", row[2])), (str(dose), str(patient_id), record_at))
     except Exception as e:
         logging.warning("update_expected_with_records", e)
         return False
